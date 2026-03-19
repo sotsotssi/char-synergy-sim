@@ -648,7 +648,7 @@ function shareSynergyToX() {
     let text = "";
     if(selectedChars.length === 2) {
         const score = calculateSimilarity(selectedChars[0], selectedChars[1]);
-        text = `[${selectedChars[0].name}]와(과) [${selectedChars[1].name}]의 궁합은 ${score}%!\n\n결과를 이미지로 캡처하여 확인해보세요!\n캐릭터들의 관계성과 케미를 분석해보세요.\n#캐릭터_시너지_시뮬레이터`;
+        text = `[${selectedChars[0].name}]와(과) [${selectedChars[1].name}]의 궁합은 ${score}%!\n\n캐릭터들의 관계성과 케미를 분석해보세요.\n#캐릭터_시너지_시뮬레이터\n`;
     } else {
         text = `${selectedChars.map(c=>c.name).join(', ')}의 그룹 시너지 분석 결과!\n과연 이들의 케미는 어떨까요?\n\n#캐릭터_시너지_시뮬레이터`;
     }
