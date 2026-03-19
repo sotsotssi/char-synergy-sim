@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>캐릭터 시너지 시뮬레이터</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- html2canvas 라이브러리 추가 -->
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        body { font-family: 'Pretendard', sans-serif; background-color: #f3f4f6; color: #1f2937; }
+        
+        /* 키워드 버튼 스타일 */
+        .keyword-btn { transition: all 0.2s; }
+        .keyword-btn.selected { background-color: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3); }
+        .keyword-btn:not(.selected):hover { background-color: #e5e7eb; transform: translateY(-1px); }
+        
+        /* 성향 바 스타일 */
+        .trait-bar-container { position: relative; height: 1.25rem; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; }
+        .trait-bar-fill { position: absolute; top: 0; bottom: 0; transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), left 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .trait-bar-center { position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; background-color: #9ca3af; z-index: 10; }
+        
+        /* 캐릭터 카드 스타일 */
+        .char-card { transition: all 0.2s; border-left: 4px solid transparent; }
+        .char-card.selected { border-left-color: #3b82f6; background-color: #eff6ff; }
+        .char-card.editing { border-color: #10b981; background-color: #ecfdf5; outline: 2px dashed #10b981; outline-offset: -2px; }
+        
+        /* 모달 애니메이션 */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up { animation: fadeInUp 0.3s ease-out forwards; }
+        
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #c0c0c0; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a0a0a0; }
+
+        .log-container::-webkit-scrollbar-track { background: #1f2937; }
+        .log-container::-webkit-scrollbar-thumb { background: #4b5563; }
+        .log-container::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <header class="bg-white shadow-sm p-4 z-10 shrink-0">
+        <div class="max-w-screen-2xl mx-auto flex justify-between items-center px-2">
+            <h1 class="text-2xl font-bold text-gray-800"><i class="fas fa-dice-d20 text-indigo-500 mr-2"></i>캐릭터 시너지 시뮬레이터</h1>
+            <a href="https://x.com/bb_uu_t" target="_blank" class="text-sm text-gray-500 hidden md:block hover:text-blue-500"><i class="fab fa-twitter mr-1"></i>@bb_uu_t</a>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-hidden flex max-w-screen-2xl mx-auto w-full p-4 gap-6">
+        
+        <!-- 좌측 패널: 캐릭터 관리 -->
+        <section class="w-1/3 flex flex-col gap-5 min-w-[340px] max-w-[400px] overflow-y-auto h-full pr-2 pb-4">
+            
+            <!-- 상단: 캐릭터 생성/수정 폼 -->
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col shrink-0 relative overflow-hidden">
+                <div id="edit-indicator" class="hidden bg-green-500 text-white text-center py-1.5 text-xs font-bold w-full">캐릭터 수정 모드 활성화</div>
+                <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h2 class="text-md font-bold text-gray-800"><i class="fas fa-user-plus mr-2 text-blue-500" id="panel-icon"></i><span id="panel-title">새 캐릭터</span></h2>
+                    <span id="selection-count" class="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">선택됨: 0 / 3~10개</span>
+                </div>
+                
+                <div class="p-4 flex flex-col gap-4">
+                    <div>
+                        <input type="text" id="char-name" class="w-full px-3 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow" placeholder="캐릭터 이름">
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                        <div id="traits-preview" class="space-y-1.5"></div>
+                        <div class="mt-3 pt-3 border-t border-gray-200">
+                            <h4 class="text-[11px] font-bold text-gray-400 mb-1.5">예상 성격 라벨</h4>
+                            <div id="type-labels-preview" class="flex flex-wrap gap-1">
+                                <span class="text-xs text-gray-400">우측에서 키워드를 선택하세요.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-4 border-t border-gray-100 bg-gray-50 flex gap-2">
+                    <button id="cancel-edit-btn" class="hidden shrink-0 bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">취소</button>
+                    <button id="delete-char-btn" class="hidden shrink-0 bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">삭제</button>
+                    <button id="save-char-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg text-sm transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm">
+                        <i class="fas fa-save mr-1.5"></i>저장하기
+                    </button>
+                </div>
+            </div>
+
+            <!-- 하단: 저장된 캐릭터 목록 -->
+            <div class="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col shrink-0 mb-4">
+                <div class="p-3.5 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                    <h2 class="text-md font-bold text-gray-800 inline-flex items-center"><i class="fas fa-users mr-2 text-indigo-500"></i>저장된 캐릭터</h2>
+                    <div class="flex gap-1 items-center">
+                        <button id="delete-selected-btn" class="hidden text-xs bg-white border border-red-300 hover:bg-red-50 text-red-600 px-2 py-1.5 rounded transition-colors shadow-sm" title="선택된 캐릭터 삭제"><i class="fas fa-trash-alt mr-1"></i>선택 삭제</button>
+                        <button id="export-btn" class="text-xs bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1.5 rounded transition-colors shadow-sm" title="JSON 파일로 저장"><i class="fas fa-download"></i></button>
+                        <button id="import-btn" class="text-xs bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-2 py-1.5 rounded transition-colors shadow-sm" title="JSON 파일 불러오기"><i class="fas fa-upload"></i></button>
+                        <input type="file" id="import-file" accept=".json" class="hidden">
+                    </div>
+                </div>
+                <div class="bg-blue-50/50 text-[10px] text-blue-600 px-4 py-1.5 border-b border-gray-100 font-medium text-center">
+                    클릭: 선택 &nbsp;|&nbsp; 더블클릭: 정보 수정 &nbsp;|&nbsp; 우측 아이콘: 캡처/공유
+                </div>
+                
+                <div id="roster-container" class="p-3 flex flex-col gap-2 min-h-[100px] overflow-y-auto max-h-[300px]">
+                    <div class="text-center text-gray-400 py-6 text-sm" id="empty-roster-msg">
+                        <i class="fas fa-user-slash text-2xl mb-2 opacity-50"></i><br>생성된 캐릭터가 없습니다.
+                    </div>
+                </div>
+                
+                <div class="p-4 border-t border-gray-100 bg-gray-50 flex flex-col gap-2">
+                    <button id="analyze-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-sm transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm">
+                        <i class="fas fa-chart-pie mr-1.5"></i>선택 캐릭터 시너지 분석 (2~4명)
+                    </button>
+                    <button id="roleplay-btn" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-lg text-sm transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm">
+                        <i class="fas fa-theater-masks mr-1.5"></i>상황극 로그 생성 (2명)
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 우측 패널: 특성 키워드 목록 -->
+        <section class="flex-1 flex flex-col bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden min-w-[500px]">
+            <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <h2 class="text-lg font-bold text-gray-800"><i class="fas fa-tags mr-2 text-purple-500"></i>특성 키워드 목록</h2>
+                <div class="text-sm text-gray-500">캐릭터를 구성할 핵심 키워드를 선택하세요.</div>
+            </div>
+            <div class="p-4 border-b border-gray-100 bg-white flex gap-2 items-center">
+                <div class="relative flex-1 max-w-md">
+                    <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                    <input type="text" id="keyword-search" class="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition-shadow bg-gray-50 focus:bg-white" placeholder="특성 키워드 검색...">
+                </div>
+                <select id="sort-type" class="text-sm border rounded-lg px-3 py-2 bg-gray-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500 cursor-pointer">
+                    <option value="category">카테고리별 정렬</option>
+                    <option value="alphabet">가나다순 정렬</option>
+                </select>
+                <button id="random-keyword-btn" class="text-sm bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold px-3 py-2 rounded-lg transition-colors border border-purple-200 shadow-sm shrink-0">
+                    <i class="fas fa-dice mr-1.5"></i>랜덤 선택
+                </button>
+            </div>
+            <div id="keyword-container" class="flex-1 overflow-y-auto p-6 bg-gray-50/50"></div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-200 text-center py-2.5 text-xs text-gray-500 shrink-0 z-10 border-t border-gray-300">
+        <div class="max-w-screen-2xl mx-auto px-4 flex justify-between items-center">
+            <span>본 시뮬레이터는 MIT 라이선스에 따라 배포됩니다.</span>
+            <span>© 2026 Character Synergy Simulator</span>
+        </div>
+    </footer>
+
+    <!-- 모달: 케미 및 시너지 분석 결과 -->
+    <div id="synergy-modal" class="hidden fixed inset-0 bg-gray-900/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in-up">
+            <div class="px-6 py-4 border-b border-gray-100 bg-white flex justify-between items-center shrink-0">
+                <h2 class="text-xl font-extrabold text-gray-800 tracking-tight"><i class="fas fa-project-diagram mr-2 text-indigo-500"></i>관계성 및 케미 분석 리포트</h2>
+                <button id="synergy-close-btn-1" class="text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- 캡처 영역 래퍼 -->
+            <div class="flex-1 overflow-y-auto bg-gray-50">
+                <div id="synergy-capture-area" class="p-6 bg-gray-50 min-h-full">
+                    <!-- 결과가 여기에 삽입됨 -->
+                </div>
+            </div>
+            
+            <div class="px-6 py-4 border-t border-gray-100 bg-white flex justify-between items-center shrink-0">
+                <div class="flex gap-2">
+                    <button id="synergy-capture-btn" class="bg-blue-50 border border-blue-200 hover:bg-blue-100 text-blue-700 font-bold py-2 px-4 rounded-lg transition-colors shadow-sm text-sm"><i class="fas fa-camera mr-1.5"></i>이미지 저장</button>
+                    <button id="synergy-tweet-btn" class="bg-slate-900 hover:bg-black text-white font-bold py-2 px-4 rounded-lg transition-colors shadow-sm text-sm"><i class="fab fa-x-twitter mr-1.5"></i>공유</button>
+                </div>
+                <button id="synergy-close-btn-2" class="bg-gray-800 hover:bg-gray-900 text-white font-bold py-2 px-8 rounded-lg transition-colors shadow-md text-sm">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 모달 2: 러닝 상황극 로그 시뮬레이터 -->
+    <div id="roleplay-modal" class="hidden fixed inset-0 bg-gray-900/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] h-[80vh] flex flex-col overflow-hidden border border-slate-700 animate-fade-in-up">
+            <div class="px-6 py-4 border-b border-slate-700 bg-slate-800 flex justify-between items-center shrink-0">
+                <div class="flex items-center">
+                    <i class="fas fa-terminal text-green-400 mr-3 text-lg"></i>
+                    <h2 class="text-lg font-bold text-gray-100 tracking-tight">상호작용 로그 시뮬레이션</h2>
+                </div>
+                <div class="flex gap-2 items-center text-sm font-medium">
+                    <span id="rp-char-a-name" class="text-blue-400">CharA</span>
+                    <span class="text-gray-500 text-xs"><i class="fas fa-exchange-alt"></i></span>
+                    <span id="rp-char-b-name" class="text-red-400">CharB</span>
+                    <button id="roleplay-close-btn" class="ml-4 text-slate-400 hover:text-white transition-colors"><i class="fas fa-times text-xl"></i></button>
+                </div>
+            </div>
+            <div id="roleplay-log-container" class="p-6 flex-1 overflow-y-auto bg-slate-900 text-gray-300 font-sans log-container space-y-4"></div>
+            <div class="px-6 py-4 border-t border-slate-700 bg-slate-800 flex justify-between items-center shrink-0">
+                <div class="text-xs text-slate-400">두 캐릭터의 성향 척도를 기반으로 상황이 무작위 조합됩니다.</div>
+                <div class="flex gap-2">
+                    <button id="rp-clear-btn" class="bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 px-4 rounded-lg transition-colors text-sm"><i class="fas fa-trash-alt mr-1"></i>기록 삭제</button>
+                    <button id="rp-continue-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-lg transition-colors text-sm shadow-[0_0_15px_rgba(79,70,229,0.4)]"><i class="fas fa-play mr-1.5"></i>상황 이어나가기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 이미지 캡처 전용 숨김 영역 -->
+    <div style="position: absolute; left: -9999px; top: -9999px; overflow: visible;">
+        <div id="profile-card-capture" class="bg-white w-[420px] p-8 rounded-2xl border-2 border-gray-200 flex flex-col gap-4 shadow-xl">
+            <div class="border-b-2 border-blue-500 pb-3 mb-2 flex justify-between items-end">
+                <h2 class="text-2xl font-black text-gray-800" id="cap-name">캐릭터 이름</h2>
+                <span class="text-[10px] text-gray-400 font-mono"><i class="fas fa-dice-d20 mr-1 text-indigo-400"></i>Character Synergy Simulator</span>
+            </div>
+            <div class="text-sm font-semibold text-indigo-700 bg-indigo-50 px-3 rounded-lg inline-block w-fit border border-indigo-100" id="cap-type">성향 타입</div>
+            <div class="text-xs font-bold text-gray-500 mt-2"><i class="fas fa-tags mr-1"></i>선택된 키워드</div>
+            <div class="flex flex-wrap gap-1.5" id="cap-keywords"></div>
+            <div class="text-xs font-bold text-gray-500 mt-2 mb-1"><i class="fas fa-sliders-h mr-1"></i>성향 세부 척도</div>
+            <div id="cap-traits" class="space-y-2 bg-gray-50 p-4 rounded-xl border border-gray-100"></div>
+            <div class="text-[10px] text-center text-gray-400 mt-2 pt-2 border-t border-gray-100">
+                #캐릭터_시너지_시뮬레이터 @bb_uu_t
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./main.js">
+        import { TRAIT_DEFINITIONS, RAW_KEYWORDS, TYPE_LABELS, CHEMISTRY_DICT } from './char_data.js';
+        import { EVENT_TEMPLATES } from './simulation_data.js';
+    </script>
+</body>
+</html>
