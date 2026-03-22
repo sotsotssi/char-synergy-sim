@@ -55,10 +55,10 @@
         </div>
     </header>
 
-    <main class="flex-1 overflow-hidden flex max-w-screen-2xl mx-auto w-full p-4 gap-6">
+    <main class="flex-1 overflow-hidden flex flex-col lg:flex-row max-w-screen-2xl mx-auto w-full p-2 md:p-4 gap-4 lg:gap-6">
         
         <!-- 좌측 패널: 캐릭터 관리 -->
-        <section class="w-1/3 flex flex-col gap-5 min-w-[340px] max-w-[400px] overflow-y-auto h-full pr-2 pb-4">
+        <section class="w-full lg:w-1/3 flex flex-col gap-4 lg:gap-5 lg:min-w-[340px] lg:max-w-[400px] overflow-y-auto h-1/2 lg:h-full pr-1 lg:pr-2 pb-2 lg:pb-4 shrink-0 lg:shrink">
             
             <!-- 상단: 캐릭터 생성/수정 폼 -->
             <div class="bg-white rounded-xl shadow-md border border-gray-200 flex flex-col shrink-0 relative overflow-hidden">
@@ -113,6 +113,7 @@
                     </div>
                 </div>
                 
+                <!-- 실행 버튼 영역 -->
                 <div class="p-4 border-t border-gray-100 bg-gray-50 flex flex-col gap-2">
                     <button id="analyze-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-lg text-sm transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed shadow-sm">
                         <i class="fas fa-chart-pie mr-1.5"></i>선택 캐릭터 시너지 분석 (2~4명)
@@ -124,14 +125,15 @@
             </div>
         </section>
 
-        <!-- 우측 패널: 특성 키워드 목록 -->
-        <section class="flex-1 flex flex-col bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden min-w-[500px]">
+        <!-- 우측 패널: 키워드 리스트 -->
+        <section class="flex-1 flex flex-col bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden min-w-0 lg:min-w-[500px]">
             <div class="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
                 <h2 class="text-lg font-bold text-gray-800"><i class="fas fa-tags mr-2 text-purple-500"></i>특성 키워드 목록</h2>
                 <div class="text-sm text-gray-500">캐릭터를 구성할 핵심 키워드를 선택하세요.</div>
             </div>
-            <div class="p-4 border-b border-gray-100 bg-white flex gap-2 items-center">
-                <div class="relative flex-1 max-w-md">
+            
+            <div class="p-3 lg:p-4 border-b border-gray-100 bg-white flex flex-wrap sm:flex-nowrap gap-2 items-center">
+                <div class="relative flex-1 min-w-[150px] max-w-md">
                     <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
                     <input type="text" id="keyword-search" class="w-full pl-9 pr-4 py-2 text-sm border rounded-lg focus:ring-2 focus:ring-purple-500 focus:outline-none transition-shadow bg-gray-50 focus:bg-white" placeholder="특성 키워드 검색...">
                 </div>
@@ -139,11 +141,14 @@
                     <option value="category">카테고리별 정렬</option>
                     <option value="alphabet">가나다순 정렬</option>
                 </select>
-                <button id="random-keyword-btn" class="text-sm bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold px-3 py-2 rounded-lg transition-colors border border-purple-200 shadow-sm shrink-0">
+                <button id="random-keyword-btn" class="text-sm bg-purple-50 hover:bg-purple-100 text-purple-700 font-semibold px-3 py-2 rounded-lg transition-colors border border-purple-200 shadow-sm shrink-0 flex-1 sm:flex-none">
                     <i class="fas fa-dice mr-1.5"></i>랜덤 선택
                 </button>
             </div>
-            <div id="keyword-container" class="flex-1 overflow-y-auto p-6 bg-gray-50/50"></div>
+            
+            <div id="keyword-container" class="flex-1 overflow-y-auto p-4 lg:p-6 bg-gray-50/50">
+                <!-- 키워드 버튼들이 자바스크립트를 통해 렌더링됩니다 -->
+            </div>
         </section>
     </main>
 
